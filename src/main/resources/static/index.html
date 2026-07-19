@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Boot API Console & Monitor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --bg-panel: rgba(17, 24, 39, 0.75);
+            --border-glow: rgba(99, 102, 241, 0.15);
+            --border-light: rgba(255, 255, 255, 0.06);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #10b981;
+            --secondary-hover: #059669;
+            --danger: #f43f5e;
+            --danger-hover: #e11d48;
+            --warning: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --font-outfit: 'Outfit', sans-serif;
+            --font-fira: 'Fira Code', monospace;
+            --glow-green: 0 0 15px rgba(16, 185, 129, 0.2);
+            --glow-indigo: 0 0 15px rgba(99, 102, 241, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: var(--font-outfit);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(10, 15, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-section svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--secondary);
+            filter: drop-shadow(0 0 6px var(--secondary));
+        }
+
+        .logo-section h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--secondary);
+            text-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.4; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 8px var(--secondary); }
+            100% { transform: scale(0.9); opacity: 0.4; }
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Common Glass Panel Styles */
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-panel:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-indigo);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-title svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--primary);
+        }
+
+        /* Sidebar stats */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-light);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .stat-card .detail {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 1s ease-in-out;
+        }
+
+        /* Playground Panel */
+        .workspace-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 1px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1.25rem;
+            font-family: var(--font-outfit);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            font-family: var(--font-outfit);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.03);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-family: var(--font-outfit);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
+        }
+
+        .btn-success {
+            background-color: var(--secondary);
+        }
+
+        .btn-success:hover {
+            background-color: var(--secondary-hover);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Products List Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .product-card:hover {
+            border-color: var(--border-glow);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .product-card .sku {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            font-family: var(--font-fira);
+            font-size: 0.7rem;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .product-card h3 {
+            font-size: 1rem;
+            color: #ffffff;
+            margin-right: 4.5rem; /* prevent overlap with SKU */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-card .price {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .product-card .desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            min-height: 2.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-card .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            border-top: 1px solid var(--border-light);
+            padding-top: 0.5rem;
+        }
+
+        /* Log / Terminal Console */
+        .terminal-panel {
+            background: #060913;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-fira);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background-color: #ff5f56; }
+        .dot.yellow { background-color: #ffbd2e; }
+        .dot.green { background-color: #27c93f; }
+
+        .terminal-body {
+            font-family: var(--font-fira);
+            font-size: 0.85rem;
+            background: transparent;
+            color: #38bdf8;
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+        }
+
+        .log-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            border-left: 2px solid var(--primary);
+            padding-left: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-entry.error {
+            border-left-color: var(--danger);
+        }
+
+        .log-entry.success {
+            border-left-color: var(--secondary);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .log-method-path {
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .log-method-path .method {
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-right: 0.25rem;
+        }
+
+        .log-method-path .method.get { background: rgba(16, 185, 129, 0.15); color: var(--secondary); }
+        .log-method-path .method.post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .log-method-path .method.put { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .log-method-path .method.delete { background: rgba(244, 63, 94, 0.15); color: var(--danger); }
+
+        .log-payload {
+            white-space: pre-wrap;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.25rem;
+        }
+
+        .empty-logs {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <svg viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
+            </svg>
+            <div>
+                <h1>API Console & System Monitor</h1>
+            </div>
+        </div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            Server Status: Connected
+        </div>
+    </header>
+
+    <main>
+        <!-- Sidebar - Server Info -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <h2 class="section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                    Live Metrics
+                </h2>
+                
+                <div class="stat-card">
+                    <span class="label">CPU Usage</span>
+                    <span class="value" id="stat-cpu-process">0.00%</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="cpu-process-bar"></div>
+                    </div>
+                    <span class="detail">JVM Process (System: <span id="stat-cpu-system">0.00%</span>)</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">RAM Memory Usage</span>
+                    <span class="value" id="stat-ram-jvm">0 MB / 0 MB</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="ram-jvm-bar"></div>
+                    </div>
+                    <span class="detail">JVM Heap (System Total: <span id="stat-ram-system-total">0 GB</span>, Used: <span id="stat-ram-system-used">0 GB</span>)</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">Disk Space</span>
+                    <span class="value" id="stat-disk-used">0 GB / 0 GB</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="disk-bar"></div>
+                    </div>
+                    <span class="detail" id="stat-disk-percent">0% used (Usable: <span id="stat-disk-usable">0 GB</span>)</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">Server Uptime</span>
+                    <span class="value" id="stat-uptime">0s</span>
+                    <span class="detail" id="stat-uptime-ms">0 ms</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">Total API Requests</span>
+                    <span class="value" id="stat-requests">0</span>
+                    <span class="detail">Incremented on every hit</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="label">Environment Info</span>
+                    <span class="detail" style="font-size:0.85rem; margin-top:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
+                        <div><strong>Java Version:</strong> <span id="env-java">...</span></div>
+                        <div><strong>OS Platform:</strong> <span id="env-os">...</span></div>
+                        <div><strong>Threads Active:</strong> <span id="env-threads">...</span></div>
+                    </span>
+                </div>
+                
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="fetchSystemStats()">
+                    Force Diagnostics Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace-panel">
+            <div class="glass-panel" style="flex: 1;">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab('tab-greetings')">Greeting API</button>
+                    <button class="tab-btn" onclick="switchTab('tab-products'); refreshProductsList();">Product CRUD API</button>
+                    <button class="tab-btn" onclick="switchTab('tab-cpu'); fetchCpuDetails();">CPU Profiler</button>
+                </div>
+
+                <!-- Tab Greetings -->
+                <div id="tab-greetings" class="tab-content active" style="margin-top: 1.5rem;">
+                    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                        <div>
+                            <h3 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem;">Personalized Greeting Endpoint</h3>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                                Endpoint: <code>GET /api/v1/greetings/hello?name={name}</code>
+                            </p>
+                            <div style="display:flex; gap:1rem; align-items:flex-end;">
+                                <div class="form-group" style="flex:1; margin-bottom:0;">
+                                    <label for="greet-name">Recipient Name</label>
+                                    <input type="text" id="greet-name" placeholder="Developer">
+                                </div>
+                                <button class="btn" onclick="triggerHelloGreeting()">Send Hello Request</button>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid var(--border-light); padding-top:1.5rem;">
+                            <h3 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem;">Random Greeting Endpoint</h3>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                                Endpoint: <code>GET /api/v1/greetings/random</code>
+                            </p>
+                            <button class="btn btn-success" onclick="triggerRandomGreeting()">Send Random Request</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Products -->
+                <div id="tab-products" class="tab-content" style="margin-top: 1.5rem;">
+                    <div style="display:grid; grid-template-columns:300px 1fr; gap:1.5rem;">
+                        <!-- Product Form (Add/Edit) -->
+                        <div style="border-right: 1px solid var(--border-light); padding-right:1.5rem;">
+                            <h3 id="form-action-title" style="color:#ffffff; font-size:1.1rem; margin-bottom:1rem;">Add New Product</h3>
+                            <input type="hidden" id="prod-id">
+                            
+                            <div class="form-group">
+                                <label for="prod-name">Product Name *</label>
+                                <input type="text" id="prod-name" placeholder="e.g. Ergonomic Mouse">
+                            </div>
+                            <div class="form-group">
+                                <label for="prod-sku">SKU Code</label>
+                                <input type="text" id="prod-sku" placeholder="e.g. MSE-ERG-004">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="prod-price">Price ($) *</label>
+                                    <input type="number" id="prod-price" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="prod-desc">Description</label>
+                                <textarea id="prod-desc" rows="3" placeholder="Enter product description..."></textarea>
+                            </div>
+                            
+                            <div class="btn-group" style="width:100%;">
+                                <button class="btn" style="flex:1;" onclick="submitProductForm()">Save Product</button>
+                                <button class="btn btn-secondary" id="btn-cancel-edit" style="display:none;" onclick="resetProductForm()">Cancel</button>
+                            </div>
+                        </div>
+
+                        <!-- Product List View -->
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3 style="color:#ffffff; font-size:1.1rem;">Stored Products (In-Memory)</h3>
+                                <button class="btn btn-secondary btn-sm" onclick="refreshProductsList()">Refresh List</button>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">
+                                Endpoints: <code>GET /api/v1/products</code> | <code>POST</code> | <code>PUT</code> | <code>DELETE</code>
+                            </p>
+                            
+                            <div class="products-grid" id="products-container">
+                                <!-- Dynamic items loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab CPU Profiler -->
+                <div id="tab-cpu" class="tab-content" style="margin-top: 1.5rem;">
+                    <div>
+                        <h3 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem;">Application CPU & Thread Profiler</h3>
+                        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
+                            Endpoint: <code>GET /api/v1/system/cpu-details</code> | Displays thread-level execution details and total CPU times.
+                        </p>
+                        
+                        <!-- Mini Core Stats -->
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                            <div class="stat-card" style="margin-bottom:0; background:rgba(255,255,255,0.01);">
+                                <span class="label">Available Cores</span>
+                                <span class="value" id="cpu-cores">0</span>
+                                <span class="detail">Processors available to JVM</span>
+                            </div>
+                            <div class="stat-card" style="margin-bottom:0; background:rgba(255,255,255,0.01);">
+                                <span class="label">System Load Average</span>
+                                <span class="value" id="cpu-load-avg">0.00</span>
+                                <span class="detail">OS System Load Avg</span>
+                            </div>
+                            <div class="stat-card" style="margin-bottom:0; background:rgba(255,255,255,0.01);">
+                                <span class="label">Total Process CPU Time</span>
+                                <span class="value" id="cpu-process-time">0s</span>
+                                <span class="detail">Cumulative CPU time used</span>
+                            </div>
+                        </div>
+
+                        <!-- Active Threads Table -->
+                        <div style="border-top:1px solid var(--border-light); padding-top:1.5rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                                <h4 style="color:#ffffff; font-size:1rem;">JVM Active Threads List</h4>
+                                <button class="btn btn-secondary btn-sm" onclick="fetchCpuDetails()">Refresh Threads</button>
+                            </div>
+                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px;">
+                                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem;">
+                                    <thead>
+                                        <tr style="background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border-light); color:#ffffff; font-weight:600;">
+                                            <th style="padding:0.75rem 1rem;">ID</th>
+                                            <th style="padding:0.75rem 1rem;">Thread Name</th>
+                                            <th style="padding:0.75rem 1rem;">State</th>
+                                            <th style="padding:0.75rem 1rem; text-align:right;">CPU Time</th>
+                                            <th style="padding:0.75rem 1rem; text-align:right;">User Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="threads-table-body">
+                                        <!-- Dynamic items -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Logs Terminal -->
+                <div class="terminal-panel">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <span>API RESPONSE LOG CONSOLE</span>
+                        <a href="#" style="color: var(--danger); text-decoration: none;" onclick="clearLogs(event)">Clear</a>
+                    </div>
+                    <div class="terminal-body" id="logs-container">
+                        <div class="empty-logs">No API calls executed yet. Trigger endpoints using the panels above to see log outputs.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Tab management
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to corresponding tab button and view
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Live stats update
+        async function fetchSystemStats() {
+            try {
+                const response = await fetch('/api/v1/system/status');
+                if (!response.ok) throw new Error('Failed to fetch status');
+                const data = await response.json();
+
+                // Update UI elements
+                document.getElementById('stat-uptime').innerText = data.uptimeFormatted;
+                document.getElementById('stat-uptime-ms').innerText = `${data.uptimeMs.toLocaleString()} ms`;
+                document.getElementById('stat-requests').innerText = data.totalRequestsHandled.toLocaleString();
+                
+                // CPU Updates
+                const cpu = data.cpu;
+                document.getElementById('stat-cpu-process').innerText = cpu.processCpuPercentage;
+                document.getElementById('stat-cpu-system').innerText = cpu.systemCpuPercentage;
+                const cpuProcessPercent = cpu.processCpuLoad >= 0 ? cpu.processCpuLoad * 100 : 0;
+                document.getElementById('cpu-process-bar').style.width = `${cpuProcessPercent}%`;
+
+                // RAM Updates
+                const ram = data.ram;
+                document.getElementById('stat-ram-jvm').innerText = `${ram.jvmUsedMb} / ${ram.jvmAllocatedMb} MB`;
+                document.getElementById('stat-ram-system-total').innerText = ram.systemTotalGb || 'N/A';
+                document.getElementById('stat-ram-system-used').innerText = ram.systemUsedGb || 'N/A';
+                const jvmRamPercent = parseFloat(ram.jvmUsagePercentage) || 0;
+                document.getElementById('ram-jvm-bar').style.width = `${jvmRamPercent}%`;
+
+                // Disk Updates
+                const disk = data.disk;
+                if (disk.error) {
+                    document.getElementById('stat-disk-used').innerText = "Error";
+                    document.getElementById('stat-disk-percent').innerText = disk.error;
+                } else {
+                    document.getElementById('stat-disk-used').innerText = `${disk.usedGb} / ${disk.totalGb}`;
+                    document.getElementById('stat-disk-percent').innerText = `${disk.usagePercentage} used`;
+                    document.getElementById('stat-disk-usable').innerText = disk.usableGb;
+                    const diskPercent = parseFloat(disk.usagePercentage) || 0;
+                    document.getElementById('disk-bar').style.width = `${diskPercent}%`;
+                }
+
+                document.getElementById('env-java').innerText = data.jvmVersion;
+                document.getElementById('env-os').innerText = `${data.osName} (${data.osArch})`;
+                document.getElementById('env-threads').innerText = data.threadCount;
+            } catch (err) {
+                console.error("Error fetching system stats", err);
+            }
+        }
+
+        // Poll system stats every 2.5 seconds
+        setInterval(fetchSystemStats, 2500);
+        window.addEventListener('load', fetchSystemStats);
+
+        async function fetchCpuDetails() {
+            const url = '/api/v1/system/cpu-details';
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Update basic stats
+                document.getElementById('cpu-cores').innerText = data.availableProcessors;
+                document.getElementById('cpu-load-avg').innerText = data.systemLoadAverage >= 0 ? data.systemLoadAverage.toFixed(2) : 'N/A';
+                document.getElementById('cpu-process-time').innerText = data.processCpuTimeFormatted;
+
+                // Log response in terminal
+                logApiResponse('GET', url, response.status, data);
+
+                // Update threads table
+                const tbody = document.getElementById('threads-table-body');
+                tbody.innerHTML = '';
+
+                data.threads.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border-light)';
+                    tr.innerHTML = `
+                        <td style="padding:0.75rem 1rem; color:var(--text-muted); font-family:var(--font-fira); font-size:0.8rem;">${t.id}</td>
+                        <td style="padding:0.75rem 1rem; color:#ffffff; font-weight:500;">${escapeHtml(t.name)}</td>
+                        <td style="padding:0.75rem 1rem;">${getThreadStateBadge(t.state)}</td>
+                        <td style="padding:0.75rem 1rem; text-align:right; font-family:var(--font-fira); font-size:0.8rem; color:#a5b4fc;">${t.cpuTimeFormatted}</td>
+                        <td style="padding:0.75rem 1rem; text-align:right; font-family:var(--font-fira); font-size:0.8rem; color:var(--text-muted);">${t.userTimeMs >= 0 ? t.userTimeMs.toFixed(1) + ' ms' : 'N/A'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error("Error fetching CPU details", err);
+                logApiResponse('GET', url, 500, { error: err.message });
+            }
+        }
+
+        function getThreadStateBadge(state) {
+            let color = 'var(--text-muted)';
+            let bg = 'rgba(255, 255, 255, 0.05)';
+            if (state === 'RUNNABLE') {
+                color = 'var(--secondary)';
+                bg = 'rgba(16, 185, 129, 0.15)';
+            } else if (state === 'WAITING' || state === 'TIMED_WAITING') {
+                color = 'var(--warning)';
+                bg = 'rgba(245, 158, 11, 0.15)';
+            } else if (state === 'BLOCKED') {
+                color = 'var(--danger)';
+                bg = 'rgba(244, 63, 94, 0.15)';
+            }
+            return `<span style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:600; background:${bg}; color:${color};">${state}</span>`;
+        }
+
+        // API logger helper
+        function logApiResponse(method, url, status, responseData) {
+            const container = document.getElementById('logs-container');
+            const emptyLogs = container.querySelector('.empty-logs');
+            if (emptyLogs) {
+                container.innerHTML = '';
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            const isSuccess = status >= 200 && status < 300;
+            const logClass = isSuccess ? 'success' : 'error';
+            const methodClass = method.toLowerCase();
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${logClass}`;
+
+            const formattedJson = typeof responseData === 'object' 
+                ? JSON.stringify(responseData, null, 2) 
+                : responseData;
+
+            entry.innerHTML = `
+                <div class="log-header">
+                    <span class="log-method-path">
+                        <span class="method ${methodClass}">${method.toUpperCase()}</span>
+                        <span>${url}</span>
+                    </span>
+                    <span>HTTP ${status} | ${timestamp}</span>
+                </div>
+                <pre class="log-payload">${formattedJson}</pre>
+            `;
+
+            container.prepend(entry);
+
+            // Also trigger a statistics update to show immediate request count increments
+            fetchSystemStats();
+        }
+
+        function clearLogs(e) {
+            e.preventDefault();
+            document.getElementById('logs-container').innerHTML = `
+                <div class="empty-logs">Logs cleared.</div>
+            `;
+        }
+
+        // Greeting API calls
+        async function triggerHelloGreeting() {
+            const nameInput = document.getElementById('greet-name');
+            const name = encodeURIComponent(nameInput.value || 'Developer');
+            const url = `/api/v1/greetings/hello?name=${name}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                logApiResponse('GET', url, response.status, data);
+            } catch (err) {
+                logApiResponse('GET', url, 500, { error: err.message });
+            }
+        }
+
+        async function triggerRandomGreeting() {
+            const url = '/api/v1/greetings/random';
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                logApiResponse('GET', url, response.status, data);
+            } catch (err) {
+                logApiResponse('GET', url, 500, { error: err.message });
+            }
+        }
+
+        // Product API calls
+        async function refreshProductsList() {
+            const url = '/api/v1/products';
+            const container = document.getElementById('products-container');
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                logApiResponse('GET', url, response.status, data);
+                
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted);">No products available. Click add to create one.</div>';
+                    return;
+                }
+
+                data.forEach(prod => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <span class="sku">${prod.sku || 'N/A'}</span>
+                        <h3>${escapeHtml(prod.name)}</h3>
+                        <div class="price">$${prod.price.toFixed(2)}</div>
+                        <div class="desc">${escapeHtml(prod.description || 'No description')}</div>
+                        <div class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editProduct(${prod.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${prod.id})">Delete</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                logApiResponse('GET', url, 500, { error: err.message });
+                container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--danger);">Error loading products: ${err.message}</div>`;
+            }
+        }
+
+        async function submitProductForm() {
+            const id = document.getElementById('prod-id').value;
+            const name = document.getElementById('prod-name').value;
+            const sku = document.getElementById('prod-sku').value;
+            const price = parseFloat(document.getElementById('prod-price').value || 0);
+            const description = document.getElementById('prod-desc').value;
+
+            const payload = { name, sku, price, description };
+            const isEdit = id && id.trim() !== '';
+            const url = isEdit ? `/api/v1/products/${id}` : '/api/v1/products';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                logApiResponse(method, url, response.status, data);
+                
+                if (response.ok) {
+                    resetProductForm();
+                    refreshProductsList();
+                }
+            } catch (err) {
+                logApiResponse(method, url, 500, { error: err.message });
+            }
+        }
+
+        async function editProduct(id) {
+            const url = `/api/v1/products/${id}`;
+            try {
+                const response = await fetch(url);
+                const prod = await response.json();
+                logApiResponse('GET', url, response.status, prod);
+
+                if (response.ok) {
+                    document.getElementById('prod-id').value = prod.id;
+                    document.getElementById('prod-name').value = prod.name;
+                    document.getElementById('prod-sku').value = prod.sku;
+                    document.getElementById('prod-price').value = prod.price;
+                    document.getElementById('prod-desc').value = prod.description;
+                    
+                    document.getElementById('form-action-title').innerText = `Edit Product (ID: ${prod.id})`;
+                    document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
+                }
+            } catch (err) {
+                logApiResponse('GET', url, 500, { error: err.message });
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            const url = `/api/v1/products/${id}`;
+            try {
+                const response = await fetch(url, { method: 'DELETE' });
+                const data = await response.json();
+                logApiResponse('DELETE', url, response.status, data);
+
+                if (response.ok) {
+                    refreshProductsList();
+                    // If we were editing this product, reset form
+                    if (document.getElementById('prod-id').value == id) {
+                        resetProductForm();
+                    }
+                }
+            } catch (err) {
+                logApiResponse('DELETE', url, 500, { error: err.message });
+            }
+        }
+
+        function resetProductForm() {
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-sku').value = '';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('prod-desc').value = '';
+            
+            document.getElementById('form-action-title').innerText = 'Add New Product';
+            document.getElementById('btn-cancel-edit').style.display = 'none';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
