@@ -682,6 +682,7 @@
                     <button class="tab-btn" onclick="switchTab('tab-products'); refreshProductsList();">Product CRUD API</button>
                     <button class="tab-btn" onclick="switchTab('tab-cpu'); fetchCpuDetails();">CPU Profiler</button>
                     <button class="tab-btn" onclick="switchTab('tab-battery'); fetchBatteryDetails();">Battery Monitor</button>
+                    <button class="tab-btn" onclick="switchTab('tab-benchmarks')">Hardware Benchmarks</button>
                 </div>
 
                 <!-- Tab Greetings -->
@@ -883,6 +884,91 @@
                     </div>
                 </div>
 
+                <!-- Tab Hardware Benchmarks -->
+                <div id="tab-benchmarks" class="tab-content" style="margin-top: 1.5rem;">
+                    <div>
+                        <h3 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem;">Hardware Performance Benchmarks</h3>
+                        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">
+                            Run active stress tests to evaluate CPU prime calculations, RAM read/write throughput, and physical disk performance.
+                        </p>
+
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem;">
+                            <!-- CPU Benchmark Card -->
+                            <div class="glass-panel" style="background:rgba(255,255,255,0.01); display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                                <div>
+                                    <h4 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                                        <span style="width:12px; height:12px; background:var(--primary); border-radius:50%; display:inline-block;"></span>
+                                        CPU Multi-Threaded Test
+                                    </h4>
+                                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem; min-height:3rem;">
+                                        Calculates prime numbers up to 2.5 million concurrently utilizing all available processor cores.
+                                    </p>
+                                    <div id="cpu-bench-result" style="display:none; background:rgba(0,0,0,0.2); padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Cores Utilized:</span><strong id="cpu-bench-cores" style="color:#ffffff;">0</strong></div>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Time Taken:</span><strong id="cpu-bench-time" style="color:#ffffff;">0s</strong></div>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Primes Found:</span><strong id="cpu-bench-primes" style="color:#ffffff;">0</strong></div>
+                                        <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border-light); padding-top:0.5rem; align-items:center;">
+                                            <span style="font-weight:600;">CPU Benchmark Score:</span>
+                                            <strong id="cpu-bench-score" style="color:var(--primary); font-size:1.2rem;">0</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn" id="btn-run-cpu-bench" onclick="runCpuBenchmark()" style="width:100%;">Run CPU Test</button>
+                            </div>
+
+                            <!-- RAM Benchmark Card -->
+                            <div class="glass-panel" style="background:rgba(255,255,255,0.01); display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                                <div>
+                                    <h4 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                                        <span style="width:12px; height:12px; background:var(--secondary); border-radius:50%; display:inline-block;"></span>
+                                        RAM Write/Read Test
+                                    </h4>
+                                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem; min-height:3rem;">
+                                        Allocates a 64MB memory block, performing sequential write and checksum-validated read operations to measure memory bandwidth.
+                                    </p>
+                                    <div id="ram-bench-result" style="display:none; background:rgba(0,0,0,0.2); padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Test Block Size:</span><strong style="color:#ffffff;">64 MB</strong></div>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; align-items:center;">
+                                            <span>RAM Write Speed:</span>
+                                            <strong id="ram-bench-write" style="color:var(--secondary); font-size:1.1rem;">0 GB/s</strong>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span>RAM Read Speed:</span>
+                                            <strong id="ram-bench-read" style="color:var(--primary); font-size:1.1rem;">0 GB/s</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" id="btn-run-ram-bench" onclick="runRamBenchmark()" style="width:100%;">Run RAM Test</button>
+                            </div>
+
+                            <!-- Disk Benchmark Card -->
+                            <div class="glass-panel" style="background:rgba(255,255,255,0.01); display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                                <div>
+                                    <h4 style="color:#ffffff; font-size:1.1rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                                        <span style="width:12px; height:12px; background:var(--warning); border-radius:50%; display:inline-block;"></span>
+                                        Disk Read/Write Test
+                                    </h4>
+                                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem; min-height:3rem;">
+                                        Writes a 32MB file to the storage drive (flushing caches with sync commands) and reads it back to test physical device throughput.
+                                    </p>
+                                    <div id="disk-bench-result" style="display:none; background:rgba(0,0,0,0.2); padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Test File Size:</span><strong style="color:#ffffff;">32 MB</strong></div>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; align-items:center;">
+                                            <span>Write Throughput:</span>
+                                            <strong id="disk-bench-write" style="color:var(--warning); font-size:1.1rem;">0 MB/s</strong>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span>Read Throughput:</span>
+                                            <strong id="disk-bench-read" style="color:var(--secondary); font-size:1.1rem;">0 MB/s</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary" id="btn-run-disk-bench" onclick="runDiskBenchmark()" style="width:100%; border-color:var(--warning); color:#ffffff; font-weight:600;">Run Disk Test</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- API Logs Terminal -->
                 <div class="terminal-panel">
                     <div class="terminal-header">
@@ -1066,6 +1152,92 @@
             } catch (err) {
                 console.error("Error fetching battery details", err);
                 logApiResponse('GET', url, 500, { error: err.message });
+            }
+        }
+
+        async function runCpuBenchmark() {
+            const btn = document.getElementById('btn-run-cpu-bench');
+            const resDiv = document.getElementById('cpu-bench-result');
+            btn.disabled = true;
+            btn.innerText = 'Calculating Primes...';
+            resDiv.style.display = 'none';
+
+            const url = '/api/v1/system/benchmark/cpu';
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                
+                logApiResponse('POST', url, response.status, data);
+
+                document.getElementById('cpu-bench-cores').innerText = data.coresUsed;
+                document.getElementById('cpu-bench-time').innerText = data.durationSeconds;
+                document.getElementById('cpu-bench-primes').innerText = data.primesCalculated.toLocaleString();
+                document.getElementById('cpu-bench-score').innerText = data.score.toLocaleString() + ' K-ops/s';
+                
+                resDiv.style.display = 'block';
+            } catch (err) {
+                console.error(err);
+                alert("CPU benchmark failed: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Run CPU Test';
+            }
+        }
+
+        async function runRamBenchmark() {
+            const btn = document.getElementById('btn-run-ram-bench');
+            const resDiv = document.getElementById('ram-bench-result');
+            btn.disabled = true;
+            btn.innerText = 'Accessing Memory...';
+            resDiv.style.display = 'none';
+
+            const url = '/api/v1/system/benchmark/ram';
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+
+                logApiResponse('POST', url, response.status, data);
+
+                document.getElementById('ram-bench-write').innerText = data.writeSpeedGbs;
+                document.getElementById('ram-bench-read').innerText = data.readSpeedGbs;
+                
+                resDiv.style.display = 'block';
+            } catch (err) {
+                console.error(err);
+                alert("RAM benchmark failed: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Run RAM Test';
+            }
+        }
+
+        async function runDiskBenchmark() {
+            const btn = document.getElementById('btn-run-disk-bench');
+            const resDiv = document.getElementById('disk-bench-result');
+            btn.disabled = true;
+            btn.innerText = 'Testing I/O Speed...';
+            resDiv.style.display = 'none';
+
+            const url = '/api/v1/system/benchmark/disk';
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+
+                logApiResponse('POST', url, response.status, data);
+
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById('disk-bench-write').innerText = data.writeSpeedMbs;
+                    document.getElementById('disk-bench-read').innerText = data.readSpeedMbs;
+                    resDiv.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Disk benchmark failed: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Run Disk Test';
             }
         }
 

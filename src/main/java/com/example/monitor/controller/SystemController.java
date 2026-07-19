@@ -2,6 +2,7 @@ package com.example.monitor.controller;
 
 import com.example.monitor.filter.RequestCountFilter;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/v1/system")
@@ -217,6 +219,133 @@ public class SystemController {
         }
         
         return response;
+    }
+
+    // --- Benchmarking Endpoints ---
+
+    @PostMapping("/benchmark/cpu")
+    public Map<String, Object> benchmarkCpu() {
+        int cores = Runtime.getRuntime().availableProcessors();
+        long startTime = System.nanoTime();
+        
+        // Use Java parallel stream utilizing the ForkJoin common pool (utilizing all available logical CPU cores)
+        // to execute heavy prime calculations as a computation load.
+        long primeCount = java.util.stream.LongStream.rangeClosed(2, 2_500_000)
+                .parallel()
+                .filter(SystemController::isPrime)
+                .count();
+        
+        long endTime = System.nanoTime();
+        double durationSec = (endTime - startTime) / 1_000_000_000.0;
+        
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("coresUsed", cores);
+        result.put("primesCalculated", primeCount);
+        result.put("durationSeconds", String.format("%.3f s", durationSec));
+        
+        // Calculate score (operations per second metric)
+        double score = (2_500_000.0 / durationSec) / 1000.0;
+        result.put("score", Math.round(score));
+        return result;
+    }
+
+    @PostMapping("/benchmark/ram")
+    public Map<String, Object> benchmarkRam() {
+        int sizeBytes = 64 * 1024 * 1024; // 64 MB block
+        byte[] array = new byte[sizeBytes];
+        
+        // Write benchmark
+        long writeStart = System.nanoTime();
+        for (int i = 0; i < sizeBytes; i++) {
+            array[i] = (byte) (i % 256);
+        }
+        long writeEnd = System.nanoTime();
+        double writeSec = (writeEnd - writeStart) / 1_000_000_000.0;
+        double writeSpeedGbs = ((double) sizeBytes / (1024.0 * 1024.0 * 1024.0)) / writeSec;
+        
+        // Read benchmark (including checksum addition to prevent JVM optimization from eliding the read loop)
+        long readStart = System.nanoTime();
+        long checksum = 0;
+        for (int i = 0; i < sizeBytes; i++) {
+            checksum += array[i];
+        }
+        long readEnd = System.nanoTime();
+        double readSec = (readEnd - readStart) / 1_000_000_000.0;
+        double readSpeedGbs = ((double) sizeBytes / (1024.0 * 1024.0 * 1024.0)) / readSec;
+        
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("blockSizeMb", 64);
+        result.put("writeSpeedGbs", String.format("%.2f GB/s", writeSpeedGbs));
+        result.put("readSpeedGbs", String.format("%.2f GB/s", readSpeedGbs));
+        result.put("checksum", checksum);
+        
+        return result;
+    }
+
+    @PostMapping("/benchmark/disk")
+    public Map<String, Object> benchmarkDisk() {
+        File tempFile = new File("temp_benchmark.bin");
+        int sizeBytes = 32 * 1024 * 1024; // 32 MB file
+        byte[] block = new byte[8192]; // 8 KB buffer block
+        new Random().nextBytes(block);
+        
+        // Write Speed test
+        long writeStart = System.nanoTime();
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+            int written = 0;
+            while (written < sizeBytes) {
+                fos.write(block);
+                written += block.length;
+            }
+            // Sync forces all system file buffers to synchronize with the underlying physical storage medium
+            fos.getFD().sync(); 
+        } catch (Exception e) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("error", "Disk write benchmark failed: " + e.getMessage());
+            return err;
+        }
+        long writeEnd = System.nanoTime();
+        double writeSec = (writeEnd - writeStart) / 1_000_000_000.0;
+        double writeSpeedMbs = ((double) sizeBytes / (1024.0 * 1024.0)) / writeSec;
+        
+        // Read Speed test
+        long readStart = System.nanoTime();
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(tempFile)) {
+            byte[] readBlock = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = fis.read(readBlock)) != -1) {
+                // Read operation
+            }
+        } catch (Exception e) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("error", "Disk read benchmark failed: " + e.getMessage());
+            return err;
+        }
+        long readEnd = System.nanoTime();
+        double readSec = (readEnd - readStart) / 1_000_000_000.0;
+        double readSpeedMbs = ((double) sizeBytes / (1024.0 * 1024.0)) / readSec;
+        
+        // Clean up temp file
+        if (tempFile.exists()) {
+            tempFile.delete();
+        }
+        
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("testFileMb", 32);
+        result.put("writeSpeedMbs", String.format("%.2f MB/s", writeSpeedMbs));
+        result.put("readSpeedMbs", String.format("%.2f MB/s", readSpeedMbs));
+        
+        return result;
+    }
+
+    private static boolean isPrime(long n) {
+        if (n <= 1) return false;
+        if (n <= 3) return true;
+        if (n % 2 == 0 || n % 3 == 0) return false;
+        for (long i = 5; i * i <= n; i += 6) {
+            if (n % i == 0 || n % (i + 2) == 0) return false;
+        }
+        return true;
     }
 
     private void parsePowerShellOutput(String output, Map<String, Object> response) {
