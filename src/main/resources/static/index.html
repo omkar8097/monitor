@@ -965,6 +965,70 @@
                     </div>
                 </div>
 
+                <!-- Tab Docker Manager -->
+                <div id="tab-docker" class="tab-content" style="margin-top: 1.5rem;">
+                    <div>
+                        <!-- Docker Host Info Alert -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.01); border:1px solid var(--border-light); padding:1rem 1.5rem; border-radius:12px; margin-bottom:1.5rem;">
+                            <div>
+                                <h3 style="color:#ffffff; font-size:1.15rem; display:flex; align-items:center; gap:0.5rem; margin: 0;">
+                                    <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:var(--primary);"><path d="M4.1,12.2V11H6.8V12.2H4.1M2,12.2V11H3.4V12.2H2M1.9,13.7V12.6H4.8V13.7H1.9M4.8,9.7V8.5H7.5V9.7H4.8M7.5,12.2V11H10.2V12.2H7.5M10.2,9.7V8.5H12.9V9.7H10.2M7.5,9.7V8.5H10.2V9.7H7.5M12.9,12.2V11H15.6V12.2H12.9M18.8,11.8C18.8,9.3 16.9,8.5 16.9,8.5C16.5,8.8 16.2,9.2 16,9.6H13.6V10.8H16.3C16.5,11.2 16.7,11.7 16.7,12.2C16.7,14 15,14 15,14H2.4V15.2H14.8C17.5,15.2 18.8,13.5 18.8,11.8Z"/></svg>
+                                    Docker Daemon Status: <span id="docker-mode" style="color:var(--secondary); font-weight:600; margin-left:0.25rem;">Detecting...</span>
+                                </h3>
+                                <p style="color:var(--text-muted); font-size:0.85rem; margin:0.25rem 0 0 0;">
+                                    Active API Version: <span id="docker-version" style="color:#ffffff; font-weight:500;">...</span>
+                                </p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="fetchDockerStatus(); fetchDockerContainers(); fetchDockerImages();">Refresh Daemon</button>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 450px; gap:1.5rem;">
+                            <!-- Containers Management -->
+                            <div>
+                                <h4 style="color:#ffffff; font-size:1.05rem; margin-top:0; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem; font-weight:600;">
+                                    Containers Lifecycle Control
+                                </h4>
+                                <div id="docker-containers-list" style="display:flex; flex-direction:column; gap:0.75rem; max-height: 480px; overflow-y: auto; padding-right:0.25rem;">
+                                    <!-- Dynamic Container Cards -->
+                                </div>
+                            </div>
+
+                            <!-- Images Management & Pull -->
+                            <div style="display:flex; flex-direction:column; gap:1.5rem; border-left:1px solid var(--border-light); padding-left:1.5rem;">
+                                <!-- Pull Image Form -->
+                                <div class="glass-panel" style="padding:1.25rem; background:rgba(255,255,255,0.01); border-radius:12px;">
+                                    <h4 style="color:#ffffff; font-size:0.95rem; margin-top:0; margin-bottom:0.75rem; font-weight:600;">Pull New Docker Image</h4>
+                                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                                        <div class="form-group" style="flex:1; margin-bottom:0;">
+                                            <input type="text" id="docker-pull-name" placeholder="e.g. nginx:alpine" style="padding:0.6rem 0.8rem; font-size:0.85rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:6px; color:#fff; width:100%;">
+                                        </div>
+                                        <button class="btn btn-sm" id="btn-docker-pull" onclick="pullDockerImage()">Pull</button>
+                                    </div>
+                                </div>
+
+                                <!-- Image Table Inventory -->
+                                <div>
+                                    <h4 style="color:#ffffff; font-size:1.05rem; margin-top:0; margin-bottom:0.75rem; font-weight:600;">Local Image Inventory</h4>
+                                    <div style="max-height: 320px; overflow-y: auto; border:1px solid var(--border-light); border-radius:8px;">
+                                        <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left;">
+                                            <thead>
+                                                <tr style="background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border-light); color:#ffffff;">
+                                                    <th style="padding:0.6rem 0.8rem;">Repository</th>
+                                                    <th style="padding:0.6rem 0.8rem;">Tag</th>
+                                                    <th style="padding:0.6rem 0.8rem; text-align:right;">Size</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="docker-images-table-body">
+                                                <!-- Dynamic Image rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- API Logs Terminal -->
                 <div class="terminal-panel">
                     <div class="terminal-header">
