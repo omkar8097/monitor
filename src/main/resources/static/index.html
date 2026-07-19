@@ -683,6 +683,7 @@
                     <button class="tab-btn" onclick="switchTab('tab-cpu'); fetchCpuDetails();">CPU Profiler</button>
                     <button class="tab-btn" onclick="switchTab('tab-battery'); fetchBatteryDetails();">Battery Monitor</button>
                     <button class="tab-btn" onclick="switchTab('tab-benchmarks')">Hardware Benchmarks</button>
+                    <button class="tab-btn" onclick="switchTab('tab-docker'); fetchDockerStatus(); fetchDockerContainers(); fetchDockerImages();">Docker Manager</button>
                 </div>
 
                 <!-- Tab Greetings -->
@@ -879,11 +880,6 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tab Hardware Benchmarks -->
                 <div id="tab-benchmarks" class="tab-content" style="margin-top: 1.5rem;">
                     <div>
@@ -1238,6 +1234,192 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = 'Run Disk Test';
+            }
+        }
+
+        async function fetchDockerStatus() {
+            const url = '/api/v1/docker/status';
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                document.getElementById('docker-mode').innerText = data.mode;
+                document.getElementById('docker-version').innerText = data.version;
+
+                const color = data.available ? 'var(--secondary)' : 'var(--warning)';
+                document.getElementById('docker-mode').style.color = color;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchDockerContainers() {
+            const url = '/api/v1/docker/containers';
+            const container = document.getElementById('docker-containers-list');
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                logApiResponse('GET', url, response.status, data);
+
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">No containers found.</div>';
+                    return;
+                }
+
+                data.forEach(c => {
+                    const isRunning = c.status.toLowerCase().includes('up');
+                    const badgeColor = isRunning ? 'var(--secondary)' : 'var(--text-muted)';
+                    const badgeBg = isRunning ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel';
+                    card.style.padding = '1rem';
+                    card.style.background = 'rgba(255,255,255,0.01)';
+                    card.style.display = 'flex';
+                    card.style.justifyContent = 'space-between';
+                    card.style.alignItems = 'center';
+                    card.style.borderRadius = '10px';
+                    card.style.border = '1px solid var(--border-light)';
+
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <div style="width:36px; height:36px; background:rgba(99, 102, 241, 0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--primary);"><path d="M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H20V6H4M6,8H9V10H6V8M11,8H18V10H11V8M6,12H9V14H6V12M11,12H18V14H11V12M6,16H9V18H6V16M11,16H18V18H11V16Z"/></svg>
+                            </div>
+                            <div>
+                                <strong style="color:#ffffff; font-size:0.95rem;">${escapeHtml(c.name)}</strong>
+                                <div style="color:var(--text-muted); font-size:0.8rem; margin-top:0.15rem;">
+                                    Image: <code>${escapeHtml(c.image)}</code> | ID: <span style="font-family:var(--font-fira); font-size:0.75rem;">${c.id}</span>
+                                </div>
+                                <div style="margin-top:0.25rem;">
+                                    <span style="font-size:0.75rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:4px; color:${badgeColor}; background:${badgeBg};">${escapeHtml(c.status)}</span>
+                                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:0.5rem;">Started: ${escapeHtml(c.runningFor)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="btn-group" style="display:flex; gap:0.4rem;">
+                            <button class="btn btn-sm" ${isRunning ? 'disabled' : ''} onclick="startDockerContainer('${c.id}')" style="${isRunning ? 'opacity:0.3; cursor:default; background:rgba(255,255,255,0.05); border-color:transparent;' : 'background:rgba(16,185,129,0.2); color:#10b981; border-color:#10b981;'}">Start</button>
+                            <button class="btn btn-sm" ${!isRunning ? 'disabled' : ''} onclick="stopDockerContainer('${c.id}')" style="${!isRunning ? 'opacity:0.3; cursor:default; background:rgba(255,255,255,0.05); border-color:transparent;' : 'background:rgba(239,68,68,0.2); color:#ef4444; border-color:#ef4444;'}">Stop</button>
+                            <button class="btn btn-sm btn-secondary" onclick="restartDockerContainer('${c.id}')">Restart</button>
+                            <button class="btn btn-sm btn-danger" onclick="removeDockerContainer('${c.id}')" style="background:rgba(239,68,68,0.1); border-color:#ef4444; color:#ef4444;">Remove</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--danger);">Error loading containers.</div>';
+            }
+        }
+
+        async function startDockerContainer(id) {
+            const url = `/api/v1/docker/containers/${id}/start`;
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                logApiResponse('POST', url, response.status, data);
+                fetchDockerContainers();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function stopDockerContainer(id) {
+            const url = `/api/v1/docker/containers/${id}/stop`;
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                logApiResponse('POST', url, response.status, data);
+                fetchDockerContainers();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function restartDockerContainer(id) {
+            const url = `/api/v1/docker/containers/${id}/restart`;
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                logApiResponse('POST', url, response.status, data);
+                fetchDockerContainers();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function removeDockerContainer(id) {
+            if (!confirm('Are you sure you want to remove (and force stop) this container?')) return;
+            const url = `/api/v1/docker/containers/${id}`;
+            try {
+                const response = await fetch(url, { method: 'DELETE' });
+                const data = await response.json();
+                logApiResponse('DELETE', url, response.status, data);
+                fetchDockerContainers();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchDockerImages() {
+            const url = '/api/v1/docker/images';
+            const tbody = document.getElementById('docker-images-table-body');
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                logApiResponse('GET', url, response.status, data);
+
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No images pulled yet.</td></tr>';
+                    return;
+                }
+
+                data.forEach(img => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border-light)';
+                    tr.innerHTML = `
+                        <td style="padding:0.6rem 0.8rem; color:#ffffff; font-weight:500;">${escapeHtml(img.repository)}</td>
+                        <td style="padding:0.6rem 0.8rem; color:var(--text-muted);">${escapeHtml(img.tag)}</td>
+                        <td style="padding:0.6rem 0.8rem; text-align:right; font-family:var(--font-fira); font-size:0.75rem; color:var(--text-muted);">${escapeHtml(img.size)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function pullDockerImage() {
+            const input = document.getElementById('docker-pull-name');
+            const name = input.value.trim();
+            if (!name) {
+                alert('Please enter an image name (e.g. nginx:alpine)');
+                return;
+            }
+
+            const btn = document.getElementById('btn-docker-pull');
+            btn.disabled = true;
+            btn.innerText = 'Pulling...';
+
+            const url = `/api/v1/docker/images/pull?name=${encodeURIComponent(name)}`;
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                
+                logApiResponse('POST', url, response.status, data);
+                
+                input.value = '';
+                fetchDockerImages();
+                fetchDockerContainers();
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Pull';
             }
         }
 
